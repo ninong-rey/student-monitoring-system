@@ -46,12 +46,15 @@ RUN php artisan db:seed --force
 # Configure Apache to use the public folder
 RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf
 
-# Also update the directory configuration
-RUN echo '<Directory /var/www/html/public>
-    Options Indexes FollowSymLinks
-    AllowOverride All
-    Require all granted
-</Directory>' >> /etc/apache2/apache2.conf
+# Create a custom Apache config file
+RUN echo '<Directory /var/www/html/public>' >> /etc/apache2/conf-available/laravel.conf && \
+    echo '    Options Indexes FollowSymLinks' >> /etc/apache2/conf-available/laravel.conf && \
+    echo '    AllowOverride All' >> /etc/apache2/conf-available/laravel.conf && \
+    echo '    Require all granted' >> /etc/apache2/conf-available/laravel.conf && \
+    echo '</Directory>' >> /etc/apache2/conf-available/laravel.conf
+
+# Enable the custom configuration
+RUN a2enconf laravel
 
 EXPOSE 80
 
