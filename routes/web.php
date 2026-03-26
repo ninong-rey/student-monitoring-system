@@ -10,6 +10,10 @@ use App\Http\Controllers\ClassController;
 use App\Http\Controllers\GradeController;
 use App\Http\Controllers\ReportController;
 
+Route::get('/test', function () {
+    return '✅ App is working! PHP version: ' . PHP_VERSION;
+});
+
 // Public routes
 Route::get('/', function () {
     return redirect()->route('login');
