@@ -40,12 +40,18 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 RUN php artisan key:generate --force
 RUN php artisan config:cache
 RUN php artisan route:cache
-# RUN php artisan view:cache  (REMOVED - causes error)
 RUN php artisan migrate --force
 RUN php artisan db:seed --force
 
-# Configure Apache to use public folder
+# Configure Apache to use the public folder
 RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf
+
+# Also update the directory configuration
+RUN echo '<Directory /var/www/html/public>
+    Options Indexes FollowSymLinks
+    AllowOverride All
+    Require all granted
+</Directory>' >> /etc/apache2/apache2.conf
 
 EXPOSE 80
 
