@@ -12,11 +12,38 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # 3. Set working directory
 WORKDIR /var/www/html
 
-# 4. Copy files and set initial permissions
+# 4. Copy files
 COPY . .
+
+# 5. Create .env file
 RUN cp .env.example .env
 
-# 5. Configure Apache (Consolidated and safer)
+# 6. Create all necessary directories
+RUN mkdir -p /var/www/html/storage/framework/cache \
+    /var/www/html/storage/framework/sessions \
+    /var/www/html/storage/framework/views \
+    /var/www/html/storage/framework/testing \
+    /var/www/html/bootstrap/cache \
+    /var/www/html/database
+
+# 7. Create SQLite database
+RUN touch /var/www/html/database/database.sqlite
+
+# 8. Set permissions (owner: www-data for Apache)
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 775 /var/www/html/storage \
+    && chmod -R 775 /var/www/html/bootstrap/cache \
+    && chmod -R 775 /var/www/html/database
+
+# 9. Install dependencies (as root, but we'll set ownership after)
+RUN composer install --no-dev --optimize-autoloader --no-interaction
+
+# 10. Run Laravel setup (as root, but directories already have correct permissions)
+RUN php artisan key:generate --force \
+    && php artisan config:cache \
+    && php artisan route:cache
+
+# 11. Configure Apache
 RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf && \
     echo '<Directory /var/www/html/public>\n\
     Options Indexes FollowSymLinks\n\
@@ -25,20 +52,7 @@ RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available
 </Directory>' > /etc/apache2/conf-available/laravel.conf && \
     a2enconf laravel
 
-# 6. Install Dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction
-
-# 7. Prepare Database & Fix Permissions
-# We do this LAST so that files created by artisan are owned correctly
-RUN mkdir -p /var/www/html/database storage bootstrap/cache && \
-    touch /var/www/html/database/database.sqlite && \
-    php artisan key:generate --force && \
-    chown -R www-data:www-data /var/www/html && \
-    chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database
-
-# Note: We are NOT running migrations here. 
-# It's better to run 'php artisan migrate' when the container starts.
-
 EXPOSE 80
 
-CMD ["apache2-foreground"]
+# Run migrations at container start
+CMD ["sh", "-c", "php artisan migrate --force && apache2-foreground"]
