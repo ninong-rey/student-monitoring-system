@@ -1,18 +1,8 @@
-# Use PHP 8.4 with Apache
 FROM php:8.4-apache
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    libpng-dev \
-    libonig-dev \
-    libxml2-dev \
-    zip \
-    unzip \
-    libzip-dev \
-    libsqlite3-dev \
-    sqlite3
+    git curl libpng-dev libonig-dev libxml2-dev zip unzip libzip-dev libsqlite3-dev sqlite3
 
 # Install PHP extensions
 RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip pdo_sqlite
@@ -50,7 +40,7 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 RUN php artisan key:generate --force
 RUN php artisan config:cache
 RUN php artisan route:cache
-RUN php artisan view:cache
+# RUN php artisan view:cache  (REMOVED - causes error)
 RUN php artisan migrate --force
 RUN php artisan db:seed --force
 
