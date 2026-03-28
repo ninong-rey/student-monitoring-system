@@ -664,34 +664,38 @@
     </nav>
 
     <!-- Sidebar -->
-    <div class="sidebar">
-        <div class="sidebar-menu">
-            <a href="{{ route('admin.dashboard') }}" class="menu-item active">
-                <i class="fas fa-tachometer-alt"></i>
-                <span>Dashboard</span>
-            </a>
-            <a href="{{ route('admin.teachers.index') }}" class="menu-item">
-                <i class="fas fa-chalkboard-teacher"></i>
-                <span>Teachers</span>
-            </a>
-            <a href="{{ route('admin.students.index') }}" class="menu-item">
-                <i class="fas fa-users"></i>
-                <span>Students</span>
-            </a>
-            <a href="{{ route('admin.subjects.index') }}" class="menu-item">
-                <i class="fas fa-book"></i>
-                <span>Subjects</span>
-            </a>
-            <a href="{{ route('admin.classes.index') }}" class="menu-item">
-                <i class="fas fa-school"></i>
-                <span>Classes</span>
-            </a>
-            <a href="{{ route('admin.reports.index') }}" class="menu-item">
-                <i class="fas fa-file-alt"></i>
-                <span>Reports</span>
-            </a>
-        </div>
+<div class="sidebar">
+    <div class="sidebar-menu">
+        <a href="{{ route('admin.dashboard') }}" class="menu-item active">
+            <i class="fas fa-tachometer-alt"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="{{ route('admin.teachers.index') }}" class="menu-item">
+            <i class="fas fa-chalkboard-teacher"></i>
+            <span>Teachers</span>
+        </a>
+        <a href="{{ route('admin.students.index') }}" class="menu-item">
+            <i class="fas fa-users"></i>
+            <span>Students</span>
+        </a>
+        <a href="{{ route('admin.students.dropped') }}" class="menu-item">
+            <i class="fas fa-user-slash"></i>
+            <span>Dropped Students</span>
+        </a>
+        <a href="{{ route('admin.subjects.index') }}" class="menu-item">
+            <i class="fas fa-book"></i>
+            <span>Subjects</span>
+        </a>
+        <a href="{{ route('admin.classes.index') }}" class="menu-item">
+            <i class="fas fa-school"></i>
+            <span>Classes</span>
+        </a>
+        <a href="{{ route('admin.reports.index') }}" class="menu-item">
+            <i class="fas fa-file-alt"></i>
+            <span>Reports</span>
+        </a>
     </div>
+</div>
 
     <!-- Skeleton Loader -->
     <div class="skeleton-loader" id="skeletonLoader">

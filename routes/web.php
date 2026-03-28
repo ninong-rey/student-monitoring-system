@@ -30,6 +30,21 @@ Route::middleware(['auth'])->group(function () {
     
     // Admin routes
     Route::middleware(['can:admin'])->prefix('admin')->name('admin.')->group(function () {
+
+    // ========== DROP STUDENT ROUTES ==========
+        // Dropped students list
+        Route::get('/students/dropped', [StudentController::class, 'droppedStudents'])->name('students.dropped');
+        
+        // Drop student form and action
+        Route::get('/students/{student}/drop', [StudentController::class, 'showDropForm'])->name('students.drop-form');
+        Route::delete('/students/{student}/drop', [StudentController::class, 'dropStudent'])->name('students.drop');
+        
+        // Restore student
+        Route::patch('/students/{student}/restore', [StudentController::class, 'restoreStudent'])->name('students.restore');
+        
+        // Drop history
+        Route::get('/students/history/drop', [StudentController::class, 'dropHistory'])->name('students.drop-history');
+    
         Route::get('/dashboard', [DashboardController::class, 'adminDashboard'])->name('dashboard');
         Route::resource('teachers', TeacherController::class);
         Route::resource('students', StudentController::class);
@@ -44,7 +59,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/reports/class', [ReportController::class, 'classReport'])->name('reports.class');
         Route::get('/reports/teacher', [ReportController::class, 'teacherReport'])->name('reports.teacher');
         Route::get('/reports/export/{type}', [ReportController::class, 'export'])->name('reports.export');
-    });
+        
+        });
     
     // Teacher routes
     Route::middleware(['can:teacher'])->prefix('teacher')->name('teacher.')->group(function () {
@@ -58,5 +74,10 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/grades/calculate/{class}', [GradeController::class, 'calculate'])->name('grades.calculate');
         Route::post('/scores/store', [GradeController::class, 'storeScore'])->name('scores.store');
         Route::get('/grades/export/{class}', [GradeController::class, 'export'])->name('grades.export');
+        
+        // ========== TEACHER DROP STUDENT ROUTES ==========
+        // Drop student form and action for teachers
+        Route::get('/students/{student}/drop', [StudentController::class, 'teacherDropForm'])->name('students.drop-form');
+        Route::delete('/students/{student}/drop', [StudentController::class, 'teacherDropStudent'])->name('students.drop');
     });
 });

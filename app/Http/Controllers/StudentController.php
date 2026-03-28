@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Student;
 use App\Models\Classes;
+use App\Models\DroppedStudent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -116,8 +117,9 @@ class StudentController extends Controller
         // Get all classes taught by this teacher
         $classIds = Classes::where('teacher_id', $teacher->id)->pluck('id');
         
-        // Get all students in those classes
+        // Get all students in those classes (including dropped? Usually teachers shouldn't see dropped students)
         $students = Student::whereIn('class_id', $classIds)
+            ->where('is_dropped', false) // Only show active students to teachers
             ->with('class')
             ->get();
 
@@ -143,5 +145,185 @@ class StudentController extends Controller
         $student->load('class', 'scores', 'grades');
         
         return view('teacher.students.show', compact('student'));
+    }
+
+    // ========== DROP STUDENT METHODS ==========
+
+    /**
+     * Show form to drop a student (Admin).
+     */
+    public function showDropForm(Student $student)
+    {
+        // Check if student is already dropped
+        if ($student->is_dropped) {
+            return redirect()->route('admin.students.show', $student)
+                ->with('error', 'This student is already dropped.');
+        }
+
+        return view('admin.students.drop', compact('student'));
+    }
+
+    /**
+     * Process dropping a student (Admin).
+     */
+    public function dropStudent(Request $request, Student $student)
+    {
+        $request->validate([
+            'reason' => 'required|string|max:100',
+            'remarks' => 'nullable|string',
+        ]);
+
+        // Check if student is already dropped
+        if ($student->is_dropped) {
+            return redirect()->route('admin.students.index')
+                ->with('error', 'This student is already dropped.');
+        }
+
+        // Save the class_id before dropping
+        $classId = $student->class_id;
+        $teacherId = $student->class ? $student->class->teacher_id : null;
+
+        // Drop the student
+        $student->is_dropped = true;
+        $student->drop_date = now();
+        $student->drop_reason = $request->reason;
+        $student->drop_remarks = $request->remarks;
+        $student->dropped_by = Auth::id();
+        $student->save();
+
+        // Save to history table
+        DroppedStudent::create([
+            'student_id' => $student->id,
+            'class_id' => $classId,
+            'teacher_id' => $teacherId,
+            'drop_date' => now(),
+            'reason' => $request->reason,
+            'remarks' => $request->remarks,
+            'status' => 'dropped',
+            'grades_snapshot' => json_encode($student->grades),
+            'dropped_by' => Auth::id()
+        ]);
+
+        return redirect()->route('admin.students.index')
+            ->with('success', 'Student has been dropped successfully.');
+    }
+
+    /**
+     * Show list of dropped students (Admin).
+     */
+    public function droppedStudents()
+    {
+        $droppedStudents = Student::where('is_dropped', true)
+            ->with(['class', 'droppedBy'])
+            ->orderBy('drop_date', 'desc')
+            ->get();
+
+        return view('admin.students.dropped', compact('droppedStudents'));
+    }
+
+    /**
+     * Restore a dropped student (Admin).
+     */
+    public function restoreStudent(Student $student)
+    {
+        if (!$student->is_dropped) {
+            return redirect()->route('admin.students.index')
+                ->with('error', 'This student is not dropped.');
+        }
+
+        $student->is_dropped = false;
+        $student->drop_date = null;
+        $student->drop_reason = null;
+        $student->drop_remarks = null;
+        $student->dropped_by = null;
+        $student->save();
+
+        return redirect()->route('admin.students.index')
+            ->with('success', 'Student has been restored successfully.');
+    }
+
+    /**
+     * Show drop history (Admin).
+     */
+    public function dropHistory()
+    {
+        $history = DroppedStudent::with(['student', 'class', 'teacher', 'droppedBy'])
+            ->orderBy('drop_date', 'desc')
+            ->paginate(20);
+
+        return view('admin.students.history', compact('history'));
+    }
+
+    /**
+     * Show form to drop a student (Teacher).
+     */
+    public function teacherDropForm(Student $student)
+    {
+        $teacher = Auth::user()->teacher;
+        
+        // Check if student belongs to teacher's class
+        $class = Classes::where('id', $student->class_id)
+            ->where('teacher_id', $teacher->id)
+            ->first();
+        
+        if (!$class) {
+            abort(403, 'Unauthorized access to this student.');
+        }
+
+        if ($student->is_dropped) {
+            return redirect()->route('teacher.students.index')
+                ->with('error', 'This student is already dropped.');
+        }
+
+        return view('teacher.students.drop', compact('student'));
+    }
+
+    /**
+     * Process dropping a student (Teacher).
+     */
+    public function teacherDropStudent(Request $request, Student $student)
+    {
+        $teacher = Auth::user()->teacher;
+        
+        // Check if student belongs to teacher's class
+        $class = Classes::where('id', $student->class_id)
+            ->where('teacher_id', $teacher->id)
+            ->first();
+        
+        if (!$class) {
+            abort(403, 'Unauthorized access to this student.');
+        }
+
+        $request->validate([
+            'reason' => 'required|string|max:100',
+            'remarks' => 'nullable|string',
+        ]);
+
+        // Save the class_id before dropping
+        $classId = $student->class_id;
+
+        // Drop the student
+        $student->is_dropped = true;
+        $student->drop_date = now();
+        $student->drop_reason = $request->reason;
+        $student->drop_remarks = $request->remarks;
+        $student->dropped_by = Auth::id();
+        $student->save();
+
+        // Save to history table
+        DroppedStudent::create([
+            'student_id' => $student->id,
+            'class_id' => $classId,
+            'teacher_id' => $teacher->id,
+            'drop_date' => now(),
+            'reason' => $request->reason,
+            'remarks' => $request->remarks,
+            'status' => 'dropped',
+            'grades_snapshot' => json_encode($student->grades),
+            'dropped_by' => Auth::id()
+        ]);
+
+        return redirect()->route('teacher.students.index')
+            ->with('success', 'Student has been dropped from your class.');
     }
 }

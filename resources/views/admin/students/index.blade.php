@@ -472,6 +472,16 @@
             font-size: 12px;
         }
 
+        .badge-dropped {
+            background: #dc3545;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 500;
+            display: inline-block;
+        }
+
         .table-container {
             overflow-x: auto;
             margin-top: 20px;
@@ -558,6 +568,7 @@
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
+            flex-wrap: wrap;
         }
 
         .pagination {
@@ -645,6 +656,10 @@
             <a href="{{ route('admin.students.index') }}" class="menu-item active">
                 <i class="fas fa-users"></i>
                 <span>Students</span>
+            </a>
+            <a href="{{ route('admin.students.dropped') }}" class="menu-item">
+                <i class="fas fa-user-slash"></i>
+                <span>Dropped Students</span>
             </a>
             <a href="{{ route('admin.subjects.index') }}" class="menu-item">
                 <i class="fas fa-book"></i>
@@ -748,6 +763,9 @@
                 <a href="{{ route('admin.students.create') }}" class="btn btn-primary">
                     <i class="fas fa-user-plus"></i> Add New Student
                 </a>
+                <a href="{{ route('admin.students.dropped') }}" class="btn btn-warning">
+                    <i class="fas fa-user-slash"></i> View Dropped Students
+                </a>
             </div>
 
             <!-- Students List -->
@@ -771,9 +789,9 @@
                                 <th>Gender</th>
                                 <th>Guardian</th>
                                 <th>Contact</th>
+                                <th>Status</th>
                                 <th>Actions</th>
-                            </tr>
-                        </thead>
+                            </thead>
                         <tbody>
                             @forelse($students as $student)
                                 <tr>
@@ -790,16 +808,36 @@
                                     <td>{{ $student->guardian_name }}</td>
                                     <td>{{ $student->guardian_contact }}</td>
                                     <td>
+                                        @if($student->is_dropped)
+                                            <span class="badge-dropped">Dropped</span>
+                                        @else
+                                            <span class="badge" style="background: #28a74520; color: #28a745;">Active</span>
+                                        @endif
+                                    </td>
+                                    <td>
                                         <a href="{{ route('admin.students.show', $student) }}" class="btn btn-primary btn-sm">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        <a href="{{ route('admin.students.edit', $student) }}" class="btn btn-warning btn-sm">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
+                                        @if(!$student->is_dropped)
+                                            <a href="{{ route('admin.students.edit', $student) }}" class="btn btn-warning btn-sm">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{{ route('admin.students.drop-form', $student) }}" class="btn btn-danger btn-sm">
+                                                <i class="fas fa-user-slash"></i> Drop
+                                            </a>
+                                        @else
+                                            <form action="{{ route('admin.students.restore', $student) }}" method="POST" style="display: inline;">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Restore this student? They will be added back to their class.')">
+                                                    <i class="fas fa-undo"></i> Restore
+                                                </button>
+                                            </form>
+                                        @endif
                                         <form action="{{ route('admin.students.destroy', $student) }}" method="POST" style="display: inline;">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this student?')">
+                                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to permanently delete this student?')">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </form>
@@ -807,7 +845,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" style="text-align: center; padding: 40px;">
+                                    <td colspan="8" style="text-align: center; padding: 40px;">
                                         <i class="fas fa-users" style="font-size: 48px; color: #ccc; margin-bottom: 20px; display: block;"></i>
                                         No students found. 
                                         <a href="{{ route('admin.students.create') }}" style="color: #667eea;">Add your first student</a>
